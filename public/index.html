@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Files</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            cursor: pointer;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Upload Files</h1>
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">Upload</button>
+
+        <h2>Refresh All Items in Bucket</h2>
+        <button onclick="loadItems()">Refresh</button>
+
+        <h2>Items in Bucket</h2>
+        <ul id="fileList"></ul>
+    </div>
+
+    <script>
+        // Upload file to S3
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert("Please select a file to upload.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("image", fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                alert(data.message);
+                loadItems();
+            } catch (error) {
+                console.error("Upload error:", error);
+            }
+        }
+
+        // Load items from S3
+        async function loadItems() {
+            try {
+                const response = await fetch('/api/images');
+                const files = await response.json();
+
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+
+                files.forEach(file => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `
+                        ${file.Key}
+                        <button onclick="downloadFile('${file.Key}')">Download</button>
+                    `;
+                    fileList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error("Error loading items:", error);
+            }
+        }
+
+        // Download file from S3
+        function downloadFile(filename) {
+            window.location.href = `/api/download/${filename}`;
+        }
+
+        // Load items on page load
+        loadItems();
+    </script>
+
+</body>
+</html>
